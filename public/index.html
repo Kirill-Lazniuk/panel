@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Server Control</title>
+<style>
+  :root{
+    --bg:#0b0e13;
+    --panel:#12161d;
+    --panel-2:#171c25;
+    --border:#262c38;
+    --text:#d7dde5;
+    --text-dim:#7d8898;
+    --green:#3fb950;
+    --green-dim:#1e3a24;
+    --red:#f85149;
+    --red-dim:#3a1e1e;
+    --restart:#8b95a5;
+    --restart-dim:#262c38;
+    --mono: 'JetBrains Mono','Fira Code',ui-monospace,Consolas,monospace;
+  }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:var(--mono);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:100vh;
+  }
+  #login{
+    width:320px;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:10px;
+    padding:32px;
+  }
+  #login h1{
+    font-size:15px;
+    letter-spacing:.08em;
+    text-transform:uppercase;
+    color:var(--text-dim);
+    margin:0 0 4px;
+  }
+  #login p.sub{color:var(--text-dim);font-size:12px;margin:0 0 24px;}
+  #login input{
+    width:100%;
+    background:var(--bg);
+    border:1px solid var(--border);
+    color:var(--text);
+    padding:10px 12px;
+    border-radius:6px;
+    font-family:var(--mono);
+    font-size:14px;
+    margin-bottom:12px;
+  }
+  #login button{
+    width:100%;
+    padding:10px;
+    border-radius:6px;
+    border:1px solid var(--green);
+    background:var(--green-dim);
+    color:var(--green);
+    font-family:var(--mono);
+    font-weight:600;
+    cursor:pointer;
+  }
+  #login button:hover{background:var(--green);color:#06210b;}
+  #login .err{color:var(--red);font-size:12px;min-height:16px;margin-top:10px;}
+
+  #app{display:none;width:100%;max-width:980px;padding:24px;}
+  header.topbar{
+    display:flex;align-items:center;justify-content:space-between;
+    margin-bottom:16px;
+  }
+  header.topbar h1{font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:var(--text-dim);margin:0;}
+  .agent-badge{
+    font-size:11px;padding:4px 10px;border-radius:12px;border:1px solid var(--border);
+    display:flex;align-items:center;gap:6px;color:var(--text-dim);
+  }
+  .agent-badge .dot{width:7px;height:7px;border-radius:50%;background:var(--red);}
+  .agent-badge.on .dot{background:var(--green);box-shadow:0 0 6px var(--green);}
+  .agent-badge.on{color:var(--green);border-color:var(--green-dim);}
+
+  .master-controls{display:flex;gap:8px;align-items:center;}
+  .pill-btn{
+    font-family:var(--mono);font-size:11px;padding:6px 10px;border-radius:5px;cursor:pointer;
+    border:1px solid var(--border);background:var(--panel-2);color:var(--text-dim);
+  }
+  .pill-btn:hover{color:var(--text);border-color:var(--text-dim);}
+  .pill-btn.logout{margin-left:16px;}
+  .pill-btn:disabled{opacity:.35;cursor:not-allowed;}
+
+  .tabs{display:flex;gap:4px;margin-left:4px;flex-wrap:wrap;}
+  .tab{
+    padding:8px 18px 9px;
+    background:var(--panel-2);
+    border:1px solid var(--border);
+    border-bottom:none;
+    border-radius:8px 8px 0 0;
+    color:var(--text-dim);
+    cursor:pointer;
+    font-size:13px;
+    display:flex;align-items:center;gap:8px;
+    position:relative;top:1px;
+  }
+  .tab.active{background:var(--panel);color:var(--text);border-bottom:1px solid var(--panel);}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--restart-dim);flex:none;}
+  .dot.on{background:var(--green);box-shadow:0 0 6px var(--green);}
+
+  .panel-body{
+    display:flex;gap:16px;
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:0 8px 8px 8px;
+    padding:16px;
+  }
+  #console{
+    flex:1;
+    height:440px;
+    background:var(--bg);
+    border:1px solid var(--border);
+    border-radius:6px;
+    padding:12px;
+    overflow-y:auto;
+    font-size:12.5px;
+    line-height:1.6;
+    white-space:pre-wrap;
+    word-break:break-word;
+  }
+  #console .stderr{color:var(--red);}
+  #console .panelmsg{color:var(--text-dim);font-style:italic;}
+  #console .in{color:#79c0ff;}
+
+  .side-buttons{
+    display:flex;flex-direction:column;gap:12px;width:120px;flex:none;
+  }
+  .side-buttons button{
+    font-family:var(--mono);font-weight:700;font-size:13px;
+    padding:16px 0;border-radius:8px;cursor:pointer;letter-spacing:.03em;
+  }
+  .btn-start{background:var(--green-dim);border:1.5px solid var(--green);color:var(--green);}
+  .btn-start:hover{background:var(--green);color:#06210b;}
+  .btn-stop{background:var(--red-dim);border:1.5px solid var(--red);color:var(--red);}
+  .btn-stop:hover{background:var(--red);color:#2b0a08;}
+  .btn-restart{background:var(--restart-dim);border:1.5px solid var(--restart);color:var(--restart);}
+  .btn-restart:hover{background:var(--restart);color:#0b0e13;}
+  button:disabled{opacity:.35;cursor:not-allowed;}
+
+  .cmdline{margin-top:10px;display:flex;gap:8px;}
+  .cmdline input{
+    flex:1;background:var(--bg);border:1px solid var(--border);border-radius:6px;
+    color:var(--text);padding:8px 10px;font-family:var(--mono);font-size:12.5px;
+  }
+  .cmdline button{
+    font-family:var(--mono);font-size:12px;padding:8px 14px;border-radius:6px;
+    background:var(--panel-2);border:1px solid var(--border);color:var(--text-dim);cursor:pointer;
+  }
+  .agent-warning{
+    color:var(--red);font-size:12px;margin-bottom:10px;padding:8px 12px;
+    border:1px solid var(--red-dim);border-radius:6px;background:var(--red-dim);
+    display:none;
+  }
+</style>
+</head>
+<body>
+
+  <div id="login">
+    <h1>Server Control</h1>
+    <p class="sub">вход в панель управления</p>
+    <input id="password" type="password" placeholder="Пароль" autofocus>
+    <button id="loginBtn">Войти</button>
+    <div class="err" id="loginErr"></div>
+  </div>
+
+  <div id="app">
+    <header class="topbar">
+      <h1>Server Control</h1>
+      <div class="master-controls">
+        <div class="agent-badge" id="agentBadge"><span class="dot"></span><span id="agentBadgeText">агент офлайн</span></div>
+        <button class="pill-btn" id="btnAllStart" onclick="callAll('start')">▶ запустить всё</button>
+        <button class="pill-btn" id="btnAllStop" onclick="callAll('stop')">■ остановить всё</button>
+        <button class="pill-btn" id="btnAllRestart" onclick="callAll('restart')">⟳ рестарт всего</button>
+        <button class="pill-btn logout" onclick="logout()">выйти</button>
+      </div>
+    </header>
+
+    <div class="agent-warning" id="agentWarning">
+      ⚠ Агент на твоём ПК не на связи. Запусти agent.js локально — без него сервера не запустятся.
+    </div>
+
+    <div class="tabs" id="tabs"></div>
+
+    <div class="panel-body">
+      <div id="console"></div>
+      <div class="side-buttons">
+        <button class="btn-start" id="btnStart" onclick="serverAction('start')">СТАРТ</button>
+        <button class="btn-stop" id="btnStop" onclick="serverAction('stop')">СТОП</button>
+        <button class="btn-restart" id="btnRestart" onclick="serverAction('restart')">РЕСТАРТ</button>
+      </div>
+    </div>
+
+    <div class="cmdline">
+      <input id="cmdInput" placeholder="команда в консоль сервера (напр. say привет)">
+      <button onclick="sendCmd()">Отправить</button>
+    </div>
+  </div>
+
+<script>
+let activeTab = null;
+let ws = null;
+let statusCache = {};
+let agentConnected = false;
+
+async function api(path, opts={}) {
+  const res = await fetch(path, { credentials:'include', headers:{'Content-Type':'application/json'}, ...opts });
+  if (res.status === 401) { showLogin(); throw new Error('unauthorized'); }
+  return res.json();
+}
+
+document.getElementById('loginBtn').onclick = doLogin;
+document.getElementById('password').addEventListener('keydown', e => { if (e.key==='Enter') doLogin(); });
+
+async function doLogin(){
+  const password = document.getElementById('password').value;
+  const res = await fetch('/api/login', {
+    method:'POST', credentials:'include',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ password })
+  });
+  if (res.ok) { showApp(); } else {
+    document.getElementById('loginErr').textContent = 'Неверный пароль';
+  }
+}
+
+async function logout(){
+  await fetch('/api/logout', { method:'POST', credentials:'include' });
+  location.reload();
+}
+
+function showLogin(){
+  document.getElementById('login').style.display='block';
+  document.getElementById('app').style.display='none';
+}
+async function showApp(){
+  document.getElementById('login').style.display='none';
+  document.getElementById('app').style.display='block';
+  await loadStatus();
+  if (!window._statusPoll) {
+    window._statusPoll = setInterval(loadStatus, 3000);
+  }
+}
+
+function setAgentBadge(connected){
+  agentConnected = connected;
+  const badge = document.getElementById('agentBadge');
+  const text = document.getElementById('agentBadgeText');
+  const warn = document.getElementById('agentWarning');
+  badge.classList.toggle('on', connected);
+  text.textContent = connected ? 'агент онлайн' : 'агент офлайн';
+  warn.style.display = connected ? 'none' : 'block';
+  document.getElementById('btnAllStart').disabled = !connected;
+  document.getElementById('btnAllStop').disabled = !connected;
+  document.getElementById('btnAllRestart').disabled = !connected;
+  updateButtons();
+}
+
+async function loadStatus(){
+  const data = await api('/api/status');
+  const status = data.servers || {};
+  statusCache = status;
+  setAgentBadge(!!data.agentConnected);
+
+  const tabsEl = document.getElementById('tabs');
+  tabsEl.innerHTML = '';
+  const tabIds = Object.keys(status).filter(id => status[id].tab);
+  tabIds.forEach(id => {
+    const t = document.createElement('div');
+    t.className = 'tab' + (id===activeTab ? ' active' : '');
+    t.innerHTML = `<span class="dot ${status[id].running?'on':''}" id="dot-${id}"></span>${status[id].title}`;
+    t.onclick = () => selectTab(id);
+    tabsEl.appendChild(t);
+  });
+  if (!activeTab && tabIds.length) selectTab(tabIds[0]);
+  else if (activeTab) updateButtons();
+}
+
+function selectTab(id){
+  activeTab = id;
+  loadStatus();
+  connectWs(id);
+  updateButtons();
+}
+
+function updateButtons(){
+  const running = statusCache[activeTab] && statusCache[activeTab].running;
+  document.getElementById('btnStart').disabled = !agentConnected || !!running;
+  document.getElementById('btnStop').disabled = !agentConnected || !running;
+  document.getElementById('btnRestart').disabled = !agentConnected;
+}
+
+function connectWs(id){
+  if (ws) ws.close();
+  document.getElementById('console').innerHTML = '';
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}/ws?server=${id}`);
+  ws.onmessage = (ev) => {
+    const msg = JSON.parse(ev.data);
+    if (msg.type === 'history') msg.lines.forEach(appendLine);
+    if (msg.type === 'line') appendLine(msg.line);
+    if (msg.type === 'status') {
+      statusCache[id] = statusCache[id] || {};
+      statusCache[id].running = msg.running;
+      const dot = document.getElementById('dot-'+id);
+      if (dot) dot.classList.toggle('on', msg.running);
+      if (id===activeTab) updateButtons();
+    }
+    if (msg.type === 'agent') setAgentBadge(msg.connected);
+  };
+}
+
+function appendLine(line){
+  const c = document.getElementById('console');
+  const div = document.createElement('div');
+  if (line.startsWith('[stderr]')) div.className='stderr';
+  else if (line.startsWith('[panel]')) div.className='panelmsg';
+  else if (line.startsWith('>')) div.className='in';
+  div.textContent = line;
+  c.appendChild(div);
+  c.scrollTop = c.scrollHeight;
+}
+
+async function serverAction(action){
+  if (!activeTab) return;
+  await api(`/api/server/${activeTab}/${action}`, { method:'POST' });
+  setTimeout(loadStatus, 300);
+}
+
+async function callAll(action){
+  await api(`/api/all/${action}`, { method:'POST' });
+  setTimeout(loadStatus, 500);
+}
+
+function sendCmd(){
+  const inp = document.getElementById('cmdInput');
+  if (!inp.value || !ws || ws.readyState!==1) return;
+  ws.send(JSON.stringify({ type:'input', line: inp.value }));
+  inp.value='';
+}
+document.getElementById('cmdInput')?.addEventListener('keydown', e=>{ if(e.key==='Enter') sendCmd(); });
+
+api('/api/status').then(showApp).catch(()=>showLogin());
+</script>
+</body>
+</html>
