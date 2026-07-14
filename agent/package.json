@@ -1,0 +1,15 @@
+{
+  "name": "mc-agent",
+  "version": "1.0.0",
+  "private": true,
+  "main": "agent.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node agent.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
+  }
+}
