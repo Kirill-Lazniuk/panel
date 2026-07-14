@@ -3,7 +3,16 @@
 // который подключается к ней СНАРУЖИ через wss://.../ws-agent
 // Node.js 18+
 
-require('dotenv').config();
+// dotenv нужен только для локальной разработки (чтобы читать .env файл).
+// На хостинге (Render и т.п.) переменные окружения задаются через панель настроек,
+// и пакет dotenv там не устанавливается — поэтому оборачиваем в try/catch,
+// чтобы отсутствие пакета не роняло сервер.
+try {
+  require('dotenv').config();
+} catch (e) {
+  // dotenv не установлен — это нормально на хостинге
+}
+
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const crypto = require('crypto');
