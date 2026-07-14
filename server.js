@@ -3,6 +3,7 @@
 // который подключается к ней СНАРУЖИ через wss://.../ws-agent
 // Node.js 18+
 
+require('dotenv').config();
 const express = require('express');
 const cookieParser = require('cookie-parser');
 const crypto = require('crypto');
@@ -11,9 +12,14 @@ const { WebSocketServer } = require('ws');
 const path = require('path');
 
 // ====================== НАСТРОЙКИ (через переменные окружения на хостинге) ======================
-const ADMIN_PASSWORD = process.env.PANEL_PASSWORD || 'LpC?vzY<4ldNH';     // пароль для входа на сайт
-const AGENT_TOKEN    = process.env.AGENT_TOKEN    || '3a6c62056dabd9bf1ad71433c9612f9b'; // секрет между панелью и агентом
+const ADMIN_PASSWORD = process.env.PANEL_PASSWORD;
+const AGENT_TOKEN    = process.env.AGENT_TOKEN;
 const PORT           = process.env.PORT || 3000;
+
+if (!ADMIN_PASSWORD || !AGENT_TOKEN) {
+  console.error('❌ Не заданы переменные окружения PANEL_PASSWORD и AGENT_TOKEN');
+  process.exit(1);
+}
 
 // ====================== СОСТОЯНИЕ (в памяти, приходит от агента) ======================
 let serverMeta = {};     // id -> { title, tab }
