@@ -11,8 +11,8 @@ const { WebSocketServer } = require('ws');
 const path = require('path');
 
 // ====================== НАСТРОЙКИ (через переменные окружения на хостинге) ======================
-const ADMIN_PASSWORD = process.env.PANEL_PASSWORD || 'change-me';     // пароль для входа на сайт
-const AGENT_TOKEN    = process.env.AGENT_TOKEN    || 'change-me-too'; // секрет между панелью и агентом
+const ADMIN_PASSWORD = process.env.PANEL_PASSWORD || 'LpC?vzY<4ldNH';     // пароль для входа на сайт
+const AGENT_TOKEN    = process.env.AGENT_TOKEN    || '3a6c62056dabd9bf1ad71433c9612f9b'; // секрет между панелью и агентом
 const PORT           = process.env.PORT || 3000;
 
 // ====================== СОСТОЯНИЕ (в памяти, приходит от агента) ======================
