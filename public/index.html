@@ -165,9 +165,21 @@
     border:1px solid var(--red-dim);border-radius:6px;background:var(--red-dim);
     display:none;
   }
+  *{ cursor: none !important; }
+  #gif-cursor{
+    position: fixed;
+    top: 0; left: 0;
+    width: 40px; height: 40px;
+    pointer-events: none;
+    z-index: 999999;
+    transform: translate(-50%, -50%);
+    will-change: transform;
+    image-rendering: pixelated;
+  }
 </style>
 </head>
 <body>
+<img id="gif-cursor" src="/favicon.gif" alt="">
 
   <div id="login">
     <h1>Server Control</h1>
@@ -354,6 +366,17 @@ function sendCmd(){
 document.getElementById('cmdInput')?.addEventListener('keydown', e=>{ if(e.key==='Enter') sendCmd(); });
 
 api('/api/status').then(showApp).catch(()=>showLogin());
+
+// Custom animated gif cursor: follow the mouse with the gif image, native
+// cursor is hidden via `*{cursor:none}` above.
+(function gifCursor(){
+  const el = document.getElementById('gif-cursor');
+  document.addEventListener('mousemove', (e) => {
+    el.style.transform = `translate(${e.clientX}px, ${e.clientY}px) translate(-50%, -50%)`;
+  });
+  document.addEventListener('mouseleave', () => { el.style.opacity = '0'; });
+  document.addEventListener('mouseenter', () => { el.style.opacity = '1'; });
+})();
 
 // Chromium (Chrome/Brave/Edge) does not animate .gif favicons natively — it only
 // ever shows the first frame. Firefox does animate them fine.
