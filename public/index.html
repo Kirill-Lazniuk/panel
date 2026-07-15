@@ -356,37 +356,31 @@ document.getElementById('cmdInput')?.addEventListener('keydown', e=>{ if(e.key==
 api('/api/status').then(showApp).catch(()=>showLogin());
 
 // Chromium (Chrome/Brave/Edge) does not animate .gif favicons natively — it only
-// ever shows the first frame. Firefox does animate them fine. To get animation
-// in Chromium browsers too, we redraw the gif onto a hidden canvas ~10x/sec and
-// push each frame into the favicon <link> as a data URL.
+// ever shows the first frame. Firefox does animate them fine.
 //
-// IMPORTANT: the <img> has to actually be attached to the page (just hidden off
-// screen). A detached `new Image()` that's never inserted into the DOM only ever
-// decodes its first frame in Chromium — which is exactly why this looked static
-// before. Position it off-screen instead of display:none / removing it.
+// A canvas.toDataURL() based redraw loop *can* work around this, but it has two
+// real failure modes in practice:
+//  1. Chromium only keeps decoding new gif frames while the source <img> is
+//     actually being rendered on the page — a detached/off-DOM image freezes
+//     on frame 1, and so does the "animation" built from it.
+//  2. Privacy-hardened browsers (Brave in particular, with Shields on) alter or
+//     block canvas.toDataURL()/getImageData() readback as an anti-fingerprinting
+//     measure, which can silently break a canvas-based favicon animation.
+//
+// Neither of those applies if we just swap the favicon <link> between real,
+// pre-rendered static image files — no canvas, no readback, nothing to block.
+// This is the same trick Slack/Discord use for their notification-dot favicons.
 (function animateFavicon(){
-  const size = 32;
-  const img = document.createElement('img');
-  img.src = '/favicon.gif';
-  img.alt = '';
-  img.style.cssText = 'position:absolute;top:-9999px;left:-9999px;width:32px;height:32px;';
-  document.body.appendChild(img);
-
-  const canvas = document.createElement('canvas');
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext('2d');
+  const frameCount = 29;
+  const frames = Array.from({ length: frameCount }, (_, i) =>
+    `/favicon-frames/f${String(i).padStart(3, '0')}.png`
+  );
   const link = document.getElementById('favicon');
-
-  function tick(){
-    if (img.complete && img.naturalWidth > 0) {
-      ctx.clearRect(0, 0, size, size);
-      ctx.drawImage(img, 0, 0, size, size);
-      link.href = canvas.toDataURL('image/png');
-    }
-    setTimeout(tick, 100); // ~10fps is enough for a favicon
-  }
-  img.onload = tick;
+  let i = 0;
+  setInterval(() => {
+    link.href = frames[i];
+    i = (i + 1) % frames.length;
+  }, 90);
 })();
 </script>
 </body>
