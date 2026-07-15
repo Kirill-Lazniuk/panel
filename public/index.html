@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
 <meta charset="utf-8">
-<link rel="icon" href="/favicon.gif" type="image/gif">
+<link id="favicon" rel="icon" href="/favicon.gif" type="image/gif">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Server Control</title>
 <style>
@@ -354,6 +354,32 @@ function sendCmd(){
 document.getElementById('cmdInput')?.addEventListener('keydown', e=>{ if(e.key==='Enter') sendCmd(); });
 
 api('/api/status').then(showApp).catch(()=>showLogin());
+
+// Chromium (Chrome/Brave/Edge) does not animate .gif favicons natively — it only
+// ever shows the first frame. Firefox does animate them fine. To get animation
+// in Chromium browsers too, we redraw the gif onto a hidden canvas ~10x/sec and
+// push each frame into the favicon <link> as a data URL.
+(function animateFavicon(){
+  const src = '/favicon.gif';
+  const size = 32;
+  const img = new Image();
+  img.src = src;
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  const link = document.getElementById('favicon');
+
+  function tick(){
+    if (img.complete && img.naturalWidth > 0) {
+      ctx.clearRect(0, 0, size, size);
+      ctx.drawImage(img, 0, 0, size, size);
+      link.href = canvas.toDataURL('image/png');
+    }
+    setTimeout(tick, 100); // ~10fps is enough for a favicon
+  }
+  img.onload = tick;
+})();
 </script>
 </body>
 </html>
