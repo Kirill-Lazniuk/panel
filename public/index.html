@@ -359,11 +359,19 @@ api('/api/status').then(showApp).catch(()=>showLogin());
 // ever shows the first frame. Firefox does animate them fine. To get animation
 // in Chromium browsers too, we redraw the gif onto a hidden canvas ~10x/sec and
 // push each frame into the favicon <link> as a data URL.
+//
+// IMPORTANT: the <img> has to actually be attached to the page (just hidden off
+// screen). A detached `new Image()` that's never inserted into the DOM only ever
+// decodes its first frame in Chromium — which is exactly why this looked static
+// before. Position it off-screen instead of display:none / removing it.
 (function animateFavicon(){
-  const src = '/favicon.gif';
   const size = 32;
-  const img = new Image();
-  img.src = src;
+  const img = document.createElement('img');
+  img.src = '/favicon.gif';
+  img.alt = '';
+  img.style.cssText = 'position:absolute;top:-9999px;left:-9999px;width:32px;height:32px;';
+  document.body.appendChild(img);
+
   const canvas = document.createElement('canvas');
   canvas.width = size;
   canvas.height = size;
